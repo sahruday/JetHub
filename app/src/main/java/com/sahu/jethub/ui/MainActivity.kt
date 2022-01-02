@@ -17,21 +17,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,8 +77,12 @@ class MainActivity : ComponentActivity() {
 
                     val items by viewModel.data.collectAsState()
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Header(Modifier.fillMaxWidth())
+                    val scaffoldState = rememberScaffoldState()
+
+                    Scaffold(
+                        topBar = { Header() },
+                        scaffoldState = scaffoldState,
+                    ) {
                         DisplayItems(
                             items,
                             viewModel::loadMoreQueryData,
@@ -85,13 +96,43 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun Header(modifier: Modifier = Modifier) {
-        Box(modifier = modifier) {
-            Button(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                onClick = { viewModel.fetchQueryData() }
-            ) {
-                Text(text = "Fetch Data")
-            }
+        var repo by remember { mutableStateOf("") }
+        var query by remember { mutableStateOf(viewModel.query.value) }
+
+        Column(modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 4.dp)) {
+            OutlinedTextField(
+                value = repo,
+                onValueChange = { repo = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text(text = MainViewModel.DEFAULT_REPO) },
+                label = { Text(text = "Repository") },
+                trailingIcon = {
+                    Button(
+                        onClick = {
+                            val repository = if (repo.isNotBlank()) repo else MainViewModel.DEFAULT_REPO
+                            val filterQuery = if (query.isNotBlank()) query else MainViewModel.DEFAULT_QUERY
+                            if(repository != viewModel.repo.value || filterQuery != viewModel.query.value) {
+                                viewModel.repo.value = repository; viewModel.query.value = filterQuery
+                                viewModel.fetchQueryData()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Text(text = "Fetch")
+                    }
+                }
+            )
+
+            BasicTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, start = 4.dp, end = 4.dp),
+            )
+            Divider(thickness = 1.dp, color = MaterialTheme.colors.primary)
         }
     }
 
@@ -102,7 +143,6 @@ class MainActivity : ComponentActivity() {
 
         LazyColumn {
             itemsIndexed(listItems) { index, item ->
-
                 if (isLoadMoreEnabled && index + threshold == listItems.size)
                     SideEffect { loadMore() }
 
@@ -113,13 +153,16 @@ class MainActivity : ComponentActivity() {
             }
 
             item { LoadingIndicator(isLoadMoreEnabled) }
-
         }
     }
 
     @Composable
-    fun PRItemDetailComposable(itemDetails: PRItemDetails, index: Int) {
-        Column {
+    fun PRItemDetailComposable(
+        itemDetails: PRItemDetails,
+        index: Int,
+        modifier: Modifier = Modifier,
+    ) {
+        Column(modifier = modifier) {
             Row(modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp, horizontal = 8.dp)) {
@@ -131,7 +174,7 @@ class MainActivity : ComponentActivity() {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "${viewModel.owner.value}/${viewModel.repo.value} #${itemDetails.number}",
+                            text = "${viewModel.repo.value} #${itemDetails.number}",
                             style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Light),
                             modifier = Modifier.padding(horizontal = 0.dp, vertical = 2.dp),
                         )
@@ -159,9 +202,11 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DateDisplay(date: String) {
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    fun DateDisplay(
+        date: String,
+        modifier: Modifier = Modifier,
+    ) {
+        Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
             Icon(painterResource(R.drawable.ic_clock), contentDescription = "Clock", modifier = Modifier.size(16.dp))
             Text(text = date, modifier = Modifier.padding(horizontal = 4.dp), style = MaterialTheme.typography.caption)
         }
@@ -185,8 +230,11 @@ class MainActivity : ComponentActivity() {
         }
 
     @Composable
-    fun IssueItemDetailComposable(itemDetails: IssueItemDetails) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+    fun IssueItemDetailComposable(
+        itemDetails: IssueItemDetails,
+        modifier: Modifier = Modifier,
+    ) {
+        Row(modifier = modifier.fillMaxWidth()) {
             Icon(getIssueStatePainter(itemDetails), contentDescription = "PR State")
             Spacer(modifier = Modifier.width(12.dp))
             Text(text = itemDetails.title, style = MaterialTheme.typography.body1)
@@ -201,8 +249,11 @@ class MainActivity : ComponentActivity() {
         }
 
     @Composable
-    fun LoadingIndicator(showLoadingIndicator: Boolean) {
-        Box(modifier = Modifier
+    fun LoadingIndicator(
+        showLoadingIndicator: Boolean,
+        modifier: Modifier = Modifier,
+    ) {
+        Box(modifier = modifier
             .fillMaxWidth()
             .height(150.dp), contentAlignment = Alignment.Center) {
             if (showLoadingIndicator)
