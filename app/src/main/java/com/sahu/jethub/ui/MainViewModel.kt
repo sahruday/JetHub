@@ -17,12 +17,15 @@ class MainViewModel @Inject constructor(
     private val remoteService: RemoteService,
 ) : ViewModel() {
 
+    companion object{
+        const val DEFAULT_REPO = "PhilJay/MPAndroidChart"//"sahruday/JetHub"
+        const val DEFAULT_QUERY = "is:open is:pr"
+    }
     //Repo
-    var owner: StateFlow<String> = MutableStateFlow("PhilJay")//"sahruday")
-    var repo: StateFlow<String> = MutableStateFlow("MPAndroidChart")//"JetHub")
+    var repo = MutableStateFlow(DEFAULT_REPO)
 
     //Filter Query
-    var query: StateFlow<String> = MutableStateFlow("is:open is:pr")
+    var query = MutableStateFlow(DEFAULT_QUERY)
 
     //Display items
     private val _data: MutableStateFlow<List<ItemDetails>> = MutableStateFlow(emptyList())
@@ -34,15 +37,21 @@ class MainViewModel @Inject constructor(
 
     fun fetchQueryData() =
         viewModelScope.launch {
-            remoteService.getPublicQueryData(query = "repo:${owner.value}/${repo.value} ${query.value}", 0).collect {
+            resetData()
+            remoteService.getPublicQueryData(query = "repo:${repo.value} ${query.value}", 0).collect {
                 _data.value = it.items
                 _hasLoadMore.value = _data.value.size < it.totalCount
             }
         }
 
+    private fun resetData() {
+        _data.value = emptyList()
+        _hasLoadMore.value = true
+    }
+
     fun loadMoreQueryData() =
         viewModelScope.launch {
-            remoteService.getPublicQueryData(query = "repo:${owner.value}/${repo.value} ${query.value}", _data.value.size).collect {
+            remoteService.getPublicQueryData(query = "repo:${repo.value} ${query.value}", _data.value.size).collect {
                 _data.value = arrayListOf<ItemDetails>().apply {
                     addAll(_data.value)
                     addAll(it.items)
