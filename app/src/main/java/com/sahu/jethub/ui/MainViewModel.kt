@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             remoteService.getPublicQueryData(query = "repo:${owner.value}/${repo.value} ${query.value}", 0).collect {
                 _data.value = it.items
-                _hasLoadMore.value = it.totalCount != _data.value.size
+                _hasLoadMore.value = _data.value.size < it.totalCount
             }
         }
 
@@ -47,7 +47,7 @@ class MainViewModel @Inject constructor(
                     addAll(_data.value)
                     addAll(it.items)
                 }
-                _hasLoadMore.value = it.totalCount != _data.value.size
+                _hasLoadMore.value = _data.value.size < it.totalCount
             }
         }
 
