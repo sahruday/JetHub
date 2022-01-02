@@ -1,6 +1,6 @@
 package com.sahu.jethub.data.remote.api
 
-import com.sahu.jethub.data.remote.RemoteDataObject
+import com.sahu.jethub.dataHolders.RemoteDataObject
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query

@@ -1,11 +1,7 @@
-package com.sahu.jethub.data.remote
+package com.sahu.jethub.dataHolders
 
 import com.google.gson.annotations.SerializedName
-import com.sahu.jethub.dataHolders.IssueItemDetails
-import com.sahu.jethub.dataHolders.ItemDetails
 import com.sahu.jethub.dataHolders.ItemDetails.UserDetails
-import com.sahu.jethub.dataHolders.ItemsInfoDetails
-import com.sahu.jethub.dataHolders.PRItemDetails
 
 data class RemoteDataObject(
     @SerializedName("total_count")

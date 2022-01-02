@@ -47,7 +47,7 @@ class MainViewModel @Inject constructor(
                     addAll(_data.value)
                     addAll(it.items)
                 }
-                _hasLoadMore.value = it.totalCount != _data.value.size
+                _hasLoadMore.value = _data.value.size < it.totalCount
             }
         }
 
