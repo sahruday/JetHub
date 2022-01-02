@@ -22,7 +22,7 @@ class MainViewModel @Inject constructor(
     var repo: StateFlow<String> = MutableStateFlow("MPAndroidChart")//"JetHub")
 
     //Filter Query
-    var query: StateFlow<String> = MutableStateFlow("is:closed is:pr")
+    var query: StateFlow<String> = MutableStateFlow("is:open is:pr")
 
     //Display items
     private val _data: MutableStateFlow<List<ItemDetails>> = MutableStateFlow(emptyList())
