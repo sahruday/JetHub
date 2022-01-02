@@ -28,20 +28,26 @@ class MainViewModel @Inject constructor(
     private val _data: MutableStateFlow<List<ItemDetails>> = MutableStateFlow(emptyList())
     val data = _data.asStateFlow()
 
+    //Load more check
+    private val _hasLoadMore: MutableStateFlow<Boolean> = MutableStateFlow(true)
+    val hasLoadMore = _hasLoadMore.asStateFlow()
+
     fun fetchQueryData() =
         viewModelScope.launch {
             remoteService.getPublicQueryData(query = "repo:${owner.value}/${repo.value} ${query.value}", 0).collect {
-                _data.value = it
+                _data.value = it.items
+                _hasLoadMore.value = it.totalCount != _data.value.size
             }
         }
 
-    fun loadMoreQueryData(isInitial: Boolean = false) =
+    fun loadMoreQueryData() =
         viewModelScope.launch {
             remoteService.getPublicQueryData(query = "repo:${owner.value}/${repo.value} ${query.value}", _data.value.size).collect {
                 _data.value = arrayListOf<ItemDetails>().apply {
                     addAll(_data.value)
-                    addAll(this)
+                    addAll(it.items)
                 }
+                _hasLoadMore.value = it.totalCount != _data.value.size
             }
         }
 

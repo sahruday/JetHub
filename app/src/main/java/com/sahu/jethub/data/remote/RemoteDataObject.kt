@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import com.sahu.jethub.dataHolders.IssueItemDetails
 import com.sahu.jethub.dataHolders.ItemDetails
 import com.sahu.jethub.dataHolders.ItemDetails.UserDetails
+import com.sahu.jethub.dataHolders.ItemsInfoDetails
 import com.sahu.jethub.dataHolders.PRItemDetails
 
 data class RemoteDataObject(
@@ -36,7 +37,10 @@ open class RemoteItemDetails(
     )
 }
 
-fun RemoteItemDetails.toItemDetail(): ItemDetails {
+fun RemoteDataObject.toItemsInfoDetails() : ItemsInfoDetails =
+    ItemsInfoDetails(items.map { it.toItemDetail() },this.totalCount)
+
+private fun RemoteItemDetails.toItemDetail(): ItemDetails {
     return if(this.isDraft == null)
         IssueItemDetails(id, number, title, user, createdAt, state, closedAt, updatedAt)
     else
