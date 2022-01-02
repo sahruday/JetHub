@@ -4,6 +4,7 @@ import com.sahu.jethub.data.remote.api.GitHubApi
 import com.sahu.jethub.dataHolders.ItemDetails
 import com.sahu.jethub.dataHolders.ItemsInfoDetails
 import com.sahu.jethub.dataHolders.PRItemDetails
+import com.sahu.jethub.dataHolders.toItemsInfoDetails
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -15,7 +16,7 @@ class RemoteService @Inject constructor(
     private val api: GitHubApi,
 ) {
     companion object {
-        const val COUNT_PER_PAGE = 30
+        const val COUNT_PER_PAGE = 100
     }
 
     suspend fun getPublicQueryData(query: String, currentListSize: Int = 0): Flow<ItemsInfoDetails> = flow {
