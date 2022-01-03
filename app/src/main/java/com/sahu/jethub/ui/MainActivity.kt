@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +26,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Scaffold
+import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -33,12 +35,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +53,7 @@ import com.sahu.jethub.R
 import com.sahu.jethub.dataHolders.IssueItemDetails
 import com.sahu.jethub.dataHolders.ItemDetails
 import com.sahu.jethub.dataHolders.PRItemDetails
+import com.sahu.jethub.networkUtil.isNetworkAvailable
 import com.sahu.jethub.ui.theme.Gray
 import com.sahu.jethub.ui.theme.Green
 import com.sahu.jethub.ui.theme.JetHubTheme
@@ -68,14 +69,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        viewModel.fetchQueryData()
-
         setContent {
             JetHubTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
 
                     val items by viewModel.data.collectAsState()
+                    val isLoading by viewModel.hasLoadMore.collectAsState()
 
                     val scaffoldState = rememberScaffoldState()
 
@@ -83,10 +83,22 @@ class MainActivity : ComponentActivity() {
                         topBar = { Header() },
                         scaffoldState = scaffoldState,
                     ) {
+                        LaunchedEffect("") {
+                            if(isNetworkAvailable(applicationContext)) {
+                                viewModel.fetchQueryData()
+                                scaffoldState.snackbarHostState.currentSnackbarData?.dismiss()
+                            }
+                            else {
+                                viewModel.resetData(false)
+                                scaffoldState.snackbarHostState.showSnackbar("No Network Connectivity",
+                                    duration = SnackbarDuration.Long)
+                            }
+                        }
+
                         DisplayItems(
                             items,
                             viewModel::loadMoreQueryData,
-                            viewModel.hasLoadMore.value
+                            isLoading
                         )
                     }
                 }
@@ -96,43 +108,57 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun Header(modifier: Modifier = Modifier) {
-        var repo by remember { mutableStateOf("") }
-        var query by remember { mutableStateOf(viewModel.query.value) }
 
-        Column(modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 4.dp)) {
-            OutlinedTextField(
-                value = repo,
-                onValueChange = { repo = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(text = MainViewModel.DEFAULT_REPO) },
-                label = { Text(text = "Repository") },
-                trailingIcon = {
+        Surface(
+            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+            elevation = 4.dp
+        ) {
+            Column(modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 4.dp)) {
+                OutlinedTextField(
+                    value = viewModel.repo.collectAsState().value,
+                    onValueChange = { viewModel.repo.value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(text = MainViewModel.DEFAULT_REPO) },
+                    label = { Text(text = "Repository") },
+                    textStyle = MaterialTheme.typography.h6.copy(
+                        fontWeight = FontWeight.Normal
+                    ),
+                )
+
+                BasicTextField(
+                    value = viewModel.query.collectAsState().value,
+                    onValueChange = { viewModel.query.value = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, start = 4.dp, end = 4.dp),
+                    textStyle = MaterialTheme.typography.h6.copy(
+                        fontWeight = FontWeight.Normal
+                    ),
+                )
+
+                Divider(thickness = 1.dp, color = MaterialTheme.colors.primary)
+
+                Row(modifier = Modifier.padding(top = 4.dp)) {
                     Button(
-                        onClick = {
-                            val repository = if (repo.isNotBlank()) repo else MainViewModel.DEFAULT_REPO
-                            val filterQuery = if (query.isNotBlank()) query else MainViewModel.DEFAULT_QUERY
-                            if(repository != viewModel.repo.value || filterQuery != viewModel.query.value) {
-                                viewModel.repo.value = repository; viewModel.query.value = filterQuery
-                                viewModel.fetchQueryData()
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        onClick = { viewModel.resetQueries() },
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .weight(1f)
                     ) {
-                        Text(text = "Fetch")
+                        Text(text = "Reset Queries")
+                    }
+                    Button(
+                        onClick = { if(isNetworkAvailable(applicationContext)) viewModel.fetchQueryData() else viewModel.isNotLoading() },
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .weight(1f)
+                    ) {
+                        Text(text = "Fetch data")
                     }
                 }
-            )
-
-            BasicTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, start = 4.dp, end = 4.dp),
-            )
-            Divider(thickness = 1.dp, color = MaterialTheme.colors.primary)
+            }
         }
     }
 
@@ -144,7 +170,7 @@ class MainActivity : ComponentActivity() {
         LazyColumn {
             itemsIndexed(listItems) { index, item ->
                 if (isLoadMoreEnabled && index + threshold == listItems.size)
-                    SideEffect { loadMore() }
+                    SideEffect { if(isNetworkAvailable(applicationContext)) loadMore() else viewModel.isNotLoading() }
 
                 when (item) {
                     is PRItemDetails -> PRItemDetailComposable(item, index)
