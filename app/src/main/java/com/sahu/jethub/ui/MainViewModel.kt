@@ -6,7 +6,6 @@ import com.sahu.jethub.data.remote.RemoteService
 import com.sahu.jethub.dataHolders.ItemDetails
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -44,9 +43,18 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    private fun resetData() {
+    fun resetData(isLoading: Boolean = true) {
+        isNotLoading(isLoading.not())
         _data.value = emptyList()
-        _hasLoadMore.value = true
+    }
+
+    fun isNotLoading(isNotLoading: Boolean = true) {
+        _hasLoadMore.value = isNotLoading.not()
+    }
+
+    fun resetQueries() {
+        repo.value = DEFAULT_REPO
+        query.value = DEFAULT_QUERY
     }
 
     fun loadMoreQueryData() =
